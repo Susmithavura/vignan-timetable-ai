@@ -1,0 +1,63 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: 'Inter', sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color: #0f172a;
+  background: #f8fbff;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(164, 211, 255, 0.24), transparent 20%),
+    linear-gradient(135deg, #f8fbff 0%, #f3f9ff 100%);
+}
+
+* { box-sizing: border-box; }
+
+button, input, select {
+  font: inherit;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.8);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(241, 245, 249, 0.8);
+}
+
+.table-scroll { overflow-x: auto; }
+
+@layer components {
+  .card {
+    @apply rounded-2xl border border-sky-100 bg-white shadow-soft;
+  }
+  .nav-btn {
+    @apply flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-600 transition-all hover:bg-sky-50 hover:text-sky-700;
+  }
+  .nav-btn.active {
+    @apply bg-sky-100 text-sky-700 shadow-sm ring-1 ring-sky-200;
+  }
+  .status-pill {
+    @apply inline-flex items-center rounded-full border border-sky-100 bg-sky-50 px-2.5 py-1 text-[11px] font-semibold text-sky-700;
+  }
+  .section-title {
+    @apply text-lg font-semibold text-slate-800;
+  }
+}

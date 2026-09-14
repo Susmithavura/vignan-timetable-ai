@@ -1,0 +1,21 @@
+export {
+    academicYear,
+    semester,
+    days,
+    periods,
+    departments,
+    departmentSummaries,
+    blocks,
+    faculty,
+    courses,
+    sections,
+    rooms,
+    teachingRooms,
+    laboratories,
+    labBatches,
+    timetableEntries,
+    conflictSamples,
+    changeRequests,
+    dashboardStats,
+} from './sampleCollegeData';
+

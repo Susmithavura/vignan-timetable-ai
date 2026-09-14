@@ -1,0 +1,1 @@
+export { labBatches } from './sampleCollegeData';

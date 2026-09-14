@@ -1,0 +1,229 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Department {
+  id        String     @id @default(cuid())
+  code      String     @unique
+  name      String
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  sections  Section[]
+  faculty   Faculty[]
+  courses   Course[]
+}
+
+model Section {
+  id            String          @id @default(cuid())
+  name          String
+  year          String
+  semester      String
+  departmentId  String
+  strength      Int
+  assignedBlock String          @default("A Block")
+  advisor       String          @default("Academic Office")
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  department    Department      @relation(fields: [departmentId], references: [id])
+  courseSections CourseSection[]
+  labBatches    LabBatch[]
+  timetableEntries TimetableEntry[]
+
+  @@unique([departmentId, name])
+}
+
+model Faculty {
+  id           String                 @id @default(cuid())
+  facultyId    String                 @unique
+  name         String
+  designation  String
+  departmentId String
+  email        String                 @unique
+  weeklyLoad   Int                    @default(0)
+  active       Boolean                @default(true)
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+  department   Department             @relation(fields: [departmentId], references: [id])
+  courses      FacultyCourse[]
+  availability FacultyAvailability[]
+  timetableEntries TimetableEntry[]
+}
+
+model Course {
+  id                    String          @id @default(cuid())
+  code                  String          @unique
+  name                  String
+  departmentId          String
+  year                  String
+  semester              String
+  type                  String
+  requiredPeriodsPerWeek Int
+  isLab                 Boolean         @default(false)
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  department            Department      @relation(fields: [departmentId], references: [id])
+  facultyAssignments    FacultyCourse[]
+  courseSections        CourseSection[]
+  timetableEntries      TimetableEntry[]
+}
+
+model FacultyCourse {
+  id        String   @id @default(cuid())
+  facultyId String
+  courseId  String
+  faculty   Faculty  @relation(fields: [facultyId], references: [id])
+  course    Course   @relation(fields: [courseId], references: [id])
+
+  @@unique([facultyId, courseId])
+}
+
+model CourseSection {
+  id        String   @id @default(cuid())
+  courseId  String
+  sectionId String
+  course    Course   @relation(fields: [courseId], references: [id])
+  section   Section  @relation(fields: [sectionId], references: [id])
+
+  @@unique([courseId, sectionId])
+}
+
+model Block {
+  id    String @id @default(cuid())
+  name  String @unique
+  rooms Room[]
+  labs  Laboratory[]
+}
+
+model Room {
+  id          String   @id @default(cuid())
+  roomName    String
+  blockId     String
+  floor       String
+  capacity    Int
+  roomType    String   @default("TEACHING_ROOM")
+  department  String
+  active      Boolean  @default(true)
+  block       Block    @relation(fields: [blockId], references: [id])
+  timetableEntries TimetableEntry[]
+
+  @@unique([blockId, roomName])
+}
+
+model Laboratory {
+  id          String   @id @default(cuid())
+  name        String
+  blockId     String
+  floor       String
+  capacity    Int
+  labType     String
+  equipment   String
+  active      Boolean  @default(true)
+  block       Block    @relation(fields: [blockId], references: [id])
+  timetableEntries TimetableEntry[]
+
+  @@unique([blockId, name])
+}
+
+model LabBatch {
+  id           String   @id @default(cuid())
+  sectionId    String
+  name         String
+  studentCount Int
+  section      Section  @relation(fields: [sectionId], references: [id])
+  timetableEntries TimetableEntry[]
+
+  @@unique([sectionId, name])
+}
+
+model WorkingDay {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  dayOrder  Int      @unique
+}
+
+model Period {
+  id            String   @id @default(cuid())
+  periodNumber  Int      @unique
+  startTime     String
+  endTime       String
+}
+
+model FacultyAvailability {
+  id         String   @id @default(cuid())
+  facultyId  String
+  dayId      String
+  periodId   String
+  available  Boolean  @default(true)
+  preferred  Boolean  @default(false)
+  faculty    Faculty  @relation(fields: [facultyId], references: [id])
+
+  @@unique([facultyId, dayId, periodId])
+}
+
+model TimetableEntry {
+  id             String   @id @default(cuid())
+  datasetId      String
+  sectionId      String
+  courseId       String
+  facultyId      String?
+  roomId         String?
+  laboratoryId   String?
+  labBatchId     String?
+  dayId          String
+  periodId       String
+  entryType      String   @default("THEORY")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  dataset        TimetableDataset @relation(fields: [datasetId], references: [id])
+  section        Section          @relation(fields: [sectionId], references: [id])
+  course         Course           @relation(fields: [courseId], references: [id])
+  faculty        Faculty?         @relation(fields: [facultyId], references: [id])
+  room           Room?            @relation(fields: [roomId], references: [id])
+  laboratory     Laboratory?     @relation(fields: [laboratoryId], references: [id])
+  labBatch       LabBatch?        @relation(fields: [labBatchId], references: [id])
+
+  @@unique([datasetId, dayId, periodId, sectionId, entryType])
+  @@index([datasetId])
+}
+
+model ChangeRequest {
+  id          String        @id @default(cuid())
+  requestedBy String
+  description String
+  status      String        @default("PENDING")
+  createdAt   DateTime      @default(now())
+  reviewedAt  DateTime?
+}
+
+model ConstraintRule {
+  id          String          @id @default(cuid())
+  name        String
+  description String
+  type        String          @default("HARD")
+  enabled     Boolean         @default(true)
+  value       String?
+}
+
+model TimetableDataset {
+  id          String   @id @default(cuid())
+  name        String
+  academicYear String
+  semester    String
+  datasetType String   @default("COLLEGE")
+  isActive    Boolean  @default(false)
+  source      String?
+  metadata    String?
+  payload     String
+  generated   String?
+  status      String   @default("DRAFT")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  timetableEntries TimetableEntry[]
+}

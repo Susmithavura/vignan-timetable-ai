@@ -1,0 +1,1 @@
+export { faculty } from './sampleCollegeData';
