@@ -1,4 +1,6 @@
-const API_BASE_URL = ((import.meta as any).env?.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:5000';
+const API_BASE_URL = ((import.meta as any).env?.VITE_API_URL as string | undefined)
+    ?? ((import.meta as any).env?.VITE_API_BASE_URL as string | undefined)
+    ?? 'https://vignan-timetable-ai.onrender.com';
 
 type AssistantResponse = {
     success: boolean;
