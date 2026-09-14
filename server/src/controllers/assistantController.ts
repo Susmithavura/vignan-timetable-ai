@@ -13,6 +13,45 @@ const conversationStore = new Map<string, {
     history: string[];
 }>();
 
+type TimetableEntrySummary = {
+    day: string;
+    period: string;
+    section: string;
+    course: string;
+    faculty: string;
+    room: string | null;
+    laboratory: string | null;
+    type: string | null;
+};
+
+type LabUtilizationSummary = {
+    laboratory: string;
+    block: string;
+    floor: string | number;
+    capacity: number;
+    scheduledSessions: number;
+};
+
+type AssistantContext = {
+    timetableEntries?: TimetableEntrySummary[];
+    dataInsights?: {
+        labUtilization?: LabUtilizationSummary[];
+        clashSummary?: Array<{ day: string; period: string; conflictCount: number; details: string[] }>;
+    };
+    requestContext?: {
+        day?: string | null;
+        period?: string | null;
+        section?: string | null;
+        course?: string | null;
+        faculty?: string | null;
+        room?: string | null;
+    };
+    totalSections?: number;
+    totalFaculty?: number;
+    totalTeachingRooms?: number;
+    periods?: string[];
+};
+
 const DAY_ALIASES: Record<string, string> = {
     monday: 'Monday',
     tuesday: 'Tuesday',
@@ -171,7 +210,7 @@ const buildResolvedTimetableEntries = async () => {
     };
 };
 
-const buildDataSummary = (entries: Array<{ day: string; period: string; section: string; course: string; faculty: string; room: string | null; laboratory: string | null; type: string | null; }>, laboratories: Array<{ name: string; block?: { name?: string | null } | null; floor?: string | null; capacity?: number | null }>) => {
+const buildDataSummary = (entries: TimetableEntrySummary[], laboratories: Array<{ name: string; block?: { name?: string | null } | null; floor?: string | null; capacity?: number | null }>) => {
     const labsSummary = laboratories.map((lab) => {
         const scheduledSessions = entries.filter((entry) => entry.laboratory === lab.name).length;
         return {
@@ -326,10 +365,10 @@ const buildAssistantContext = async (prompt: string, conversationId?: string) =>
     };
 };
 
-const generateGroundedAssistantReply = (prompt: string, context: any) => {
+const generateGroundedAssistantReply = (prompt: string, context: AssistantContext) => {
     const normalizedPrompt = prompt.toLowerCase();
-    const entries = context.timetableEntries ?? [];
-    const labs = context.dataInsights?.labUtilization ?? [];
+    const entries: TimetableEntrySummary[] = context.timetableEntries ?? [];
+    const labs: LabUtilizationSummary[] = context.dataInsights?.labUtilization ?? [];
     const day = context.requestContext?.day ?? extractDayName(prompt);
     const periodNumber = extractPeriodNumber(prompt) ?? (context.requestContext?.period ? Number(String(context.requestContext.period).replace(/\D/g, '')) : null);
     const section = context.requestContext?.section ?? null;
@@ -399,13 +438,13 @@ const generateGroundedAssistantReply = (prompt: string, context: any) => {
 
     if (/(show me|timetable|schedule)/i.test(normalizedPrompt) && section) {
         const sectionEntries = entries.filter((entry: { section: string }) => entry.section === section);
-        const grouped = sectionEntries.reduce((acc: Record<string, Array<any>>, entry: any) => {
+        const grouped = sectionEntries.reduce<Record<string, TimetableEntrySummary[]>>((acc, entry) => {
             const key = entry.day;
             acc[key] = acc[key] ?? [];
             acc[key].push(entry);
             return acc;
         }, {});
-        const dayList = Object.entries(grouped).map(([dayName, dayEntries]) => `${dayName}: ${((dayEntries as any[])).map((entry) => `${entry.period} - ${entry.course}${entry.room ? ` in ${entry.room}` : ''}`).join('; ')}`).join('\n');
+        const dayList = Object.entries(grouped).map(([dayName, dayEntries]) => `${dayName}: ${dayEntries.map((entry) => `${entry.period} - ${entry.course}${entry.room ? ` in ${entry.room}` : ''}`).join('; ')}`).join('\n');
         return `Here is the current timetable for ${section}:\n\n${dayList || 'No timetable entries were found for this section in the current database data.'}`;
     }
 
@@ -536,7 +575,7 @@ export const askAssistant = async (req: Request, res: Response, next: NextFuncti
     try {
         const payload = assistantRequestSchema.parse(req.body);
         const context = await buildAssistantContext(payload.prompt, payload.conversationId);
-        const safeContext = sanitizeForGemini(context);
+        const safeContext = sanitizeForGemini(context) as AssistantContext;
 
         if (context.timetableQuestion && context.timetableEntries.length === 0) {
             const answer = "I couldn't find that information in the current timetable data.";
